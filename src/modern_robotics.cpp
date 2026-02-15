@@ -430,7 +430,7 @@ namespace mr {
 		Eigen::MatrixXd Jb;
 		while (err && i < maxiterations) {
 			Jb = JacobianBody(Blist, thetalist);
-			thetalist += Jb.bdcSvd(Eigen::ComputeThinU | Eigen::ComputeThinV).solve(Vb);
+			thetalist += Jb.bdcSvd<Eigen::ComputeThinU | Eigen::ComputeThinV>().solve(Vb);
 			i += 1;
 			// iterate
 			Tfk = FKinBody(M, Blist, thetalist);
@@ -457,7 +457,7 @@ namespace mr {
 		Eigen::MatrixXd Js;
 		while (err && i < maxiterations) {
 			Js = JacobianSpace(Slist, thetalist);
-			thetalist += Js.bdcSvd(Eigen::ComputeThinU | Eigen::ComputeThinV).solve(Vs);
+			thetalist += Js.bdcSvd<Eigen::ComputeThinU | Eigen::ComputeThinV>().solve(Vs);
 			i += 1;
 			// iterate
 			Tfk = FKinSpace(M, Slist, thetalist);
