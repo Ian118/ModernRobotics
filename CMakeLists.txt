@@ -1,5 +1,5 @@
-cmake_minimum_required(VERSION 3.5)
-project(ModernRoboticsCpp)
+cmake_minimum_required(VERSION 4.0)
+project(ModernRobotics)
 
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR
         "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
@@ -89,18 +89,18 @@ endif()
 
 
 
-add_library(ModernRoboticsCpp SHARED src/modern_robotics.cpp include/modern_robotics.h)
+add_library(ModernRobotics SHARED src/modern_robotics.cpp include/modern_robotics.h)
 
 set(LIB_TEST_SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/src/lib_test.cpp
 )
 
 add_executable(lib_test ${LIB_TEST_SOURCES})
-target_link_libraries( lib_test ModernRoboticsCpp gtest_main)
+target_link_libraries( lib_test ModernRobotics gtest_main)
 
 
 
-install (TARGETS ModernRoboticsCpp
+install (TARGETS ModernRobotics
         ARCHIVE DESTINATION lib
         LIBRARY DESTINATION lib
         RUNTIME DESTINATION bin)
