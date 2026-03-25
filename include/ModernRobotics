@@ -372,7 +372,7 @@ AxisAng6(const Eigen::Vector<double, 6> &expc6) {
   double theta = Eigen::Vector3d(expc6(0), expc6(1), expc6(2)).norm();
   if (NearZero(theta))
     theta = Eigen::Vector3d(expc6(3), expc6(4), expc6(5)).norm();
-  v_ret << expc6 / theta;
+  v_ret << expc6 / theta, theta;
   return v_ret;
 }
 
