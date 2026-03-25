@@ -12,7 +12,7 @@ namespace mr {
  * Inputs: value to be checked as a double
  * Returns: Boolean of true-ignore or false-can't ignore
  */
-bool NearZero(const double);
+inline bool NearZero(const double val) { return (std::abs(val) < .000001); }
 
 /*
  * Function: Calculate the 6x6 matrix [adV] of the given 6-vector
@@ -31,21 +31,30 @@ Eigen::Matrix<double, 6, 6> ad(Eigen::Vector<double, 6>);
  *		Useful because of the MatrixXd casting
  */
 template <int a, int b>
-Eigen::Matrix<double, a, b> Normalize(const Eigen::Matrix<double, a, b> &);
+inline Eigen::Matrix<double, a, b>
+Normalize(const Eigen::Matrix<double, a, b> &V) {
+  return V.normalized();
+}
 
 /*
  * Function: Returns the skew symmetric matrix representation of an angular
  * velocity vector Input: Eigen::Vector3d 3x1 angular velocity vector Returns:
  * Eigen::MatrixXd 3x3 skew symmetric matrix
  */
-Eigen::Matrix3d VecToso3(const Eigen::Vector3d &);
+inline Eigen::Matrix3d VecToso3(const Eigen::Vector3d &omg) {
+  Eigen::Matrix3d so3mat;
+  so3mat << 0, -omg(2), omg(1), omg(2), 0, -omg(0), -omg(1), omg(0), 0;
+  return so3mat;
+}
 
 /*
  * Function: Returns angular velocity vector represented by the skew symmetric
  * matrix Inputs: Eigen::MatrixXd 3x3 skew symmetric matrix Returns:
  * Eigen::Vector3d 3x1 angular velocity
  */
-Eigen::Vector3d so3ToVec(const Eigen::Matrix3d &);
+inline Eigen::Vector3d so3ToVec(const Eigen::Matrix3d &so3mat) {
+  return Eigen::Vector3d{so3mat(2, 1), so3mat(0, 2), so3mat(1, 0)};
+}
 
 /*
  * Function: Tranlates an exponential rotation into it's individual components
@@ -53,7 +62,9 @@ Eigen::Vector3d so3ToVec(const Eigen::Matrix3d &);
  *				and the angle of rotation)
  * Returns: The axis and angle of rotation as [x, y, z, theta]
  */
-Eigen::AngleAxisd AxisAng3(const Eigen::Vector3d &);
+inline Eigen::AngleAxisd AxisAng3(const Eigen::Vector3d &expc3) {
+  return Eigen::AngleAxisd{expc3.norm(), expc3.normalized()};
+}
 
 /*
  * Function: Translates an exponential rotation into a rotation matrix
@@ -75,7 +86,13 @@ Eigen::Matrix3d MatrixLog3(const Eigen::Matrix3d &);
  * Returns: Matrix of T = [ [R, p],
  *						    [0, 1] ]
  */
-Eigen::Isometry3d RpToTrans(const Eigen::Matrix3d &, const Eigen::Vector3d &);
+inline Eigen::Isometry3d RpToTrans(const Eigen::Matrix3d &R,
+                                   const Eigen::Vector3d &p) {
+  Eigen::Isometry3d T;
+  T.linear() = R;
+  T.translation() = p;
+  return T;
+}
 
 /*
  * Function: Separates the rotation matrix and position vector from
@@ -83,8 +100,10 @@ Eigen::Isometry3d RpToTrans(const Eigen::Matrix3d &, const Eigen::Vector3d &);
  * Inputs: Homogeneous transformation matrix
  * Returns: std::vector of [rotation matrix, position vector]
  */
-std::pair<Eigen::Matrix3d, Eigen::Vector3d>
-TransToRp(const Eigen::Isometry3d &);
+inline std::pair<Eigen::Matrix3d, Eigen::Vector3d>
+TransToRp(const Eigen::Isometry3d &T) {
+  return {T.linear(), T.translation()};
+}
 
 /*
  * Function: Translates a spatial velocity vector into a transformation matrix
@@ -97,8 +116,9 @@ Eigen::Matrix4d VecTose3(const Eigen::Vector<double, 6> &);
  * Inputs: Transformation matrix
  * Returns: Spatial velocity vector [angular velocity, linear velocity]
  */
-Eigen::Vector<double, 6> se3ToVec(const Eigen::Matrix4d &);
-
+inline Eigen::Vector<double, 6> se3ToVec(const Eigen::Isometry3d &T) {
+  return {T(2, 1), T(0, 2), T(1, 0), T(0, 3), T(1, 3), T(2, 3)};
+}
 /*
  * Function: Provides the adjoint representation of a transformation matrix
  *			 Used to change the frame of reference for spatial
@@ -172,14 +192,18 @@ JacobianBody(const Eigen::Matrix<double, 6, njoints> &,
  * Inputs: A homogeneous transformation Matrix T
  * Returns: The inverse of T
  */
-Eigen::Isometry3d TransInv(const Eigen::Isometry3d &);
+inline Eigen::Isometry3d TransInv(const Eigen::Isometry3d &transform) {
+  return transform.inverse();
+}
 
 /*
  * Inverts a rotation matrix
  * Inputs: A rotation matrix  R
  * Returns: The inverse of R
  */
-Eigen::Matrix3d RotInv(const Eigen::Matrix3d &);
+inline Eigen::Matrix3d RotInv(const Eigen::Matrix3d &rotMatrix) {
+  return rotMatrix.transpose();
+}
 
 /*
  * Takes a parametric description of a screw axis and converts it to a
@@ -190,8 +214,13 @@ Eigen::Matrix3d RotInv(const Eigen::Matrix3d &);
  * h: The pitch of the screw axis
  * Returns: A normalized screw axis described by the inputs
  */
-Eigen::Vector<double, 6> ScrewToAxis(const Eigen::Vector3d &,
-                                     const Eigen::Vector3d &, const double &);
+inline Eigen::Vector<double, 6> ScrewToAxis(const Eigen::Vector3d &q,
+                                            const Eigen::Vector3d &s,
+                                            const double &h) {
+  Eigen::Vector<double, 6> axis;
+  axis << s, q.cross(s) + h * s;
+  return axis;
+}
 
 /*
  * Function: Translates a 6-vector of exponential coordinates into screw
@@ -228,7 +257,10 @@ Eigen::Matrix3d ProjectToSO3(const Eigen::Matrix3d &);
  * http://hades.mech.northwestern.edu/index.php/Modern_Robotics_Linear_Algebra_Review).
  * This function is only appropriate for matrices close to SE(3).
  */
-Eigen::Isometry3d ProjectToSE3(const Eigen::Matrix4d &);
+inline Eigen::Isometry3d ProjectToSE3(const Eigen::Matrix4d &M) {
+  return RpToTrans(ProjectToSO3(M.topLeftCorner<3, 3>()),
+                   M.topRightCorner<3, 1>());
+}
 
 /*
  * Function: Returns the Frobenius norm to describe the distance of M from the
@@ -236,7 +268,12 @@ Eigen::Isometry3d ProjectToSE3(const Eigen::Matrix4d &);
  * SO(3) manifold using the following method: If det(M) <= 0, return a large
  * number. If det(M) > 0, return norm(M^T*M - I).
  */
-double DistanceToSO3(const Eigen::Matrix3d &);
+inline double DistanceToSO3(const Eigen::Matrix3d &M) {
+  if (M.determinant() > 0)
+    return (M.transpose() * M - Eigen::Matrix3d::Identity()).norm();
+  else
+    return 1.0e9;
+}
 
 /*
  * Function: Returns the Frobenius norm to describe the distance of mat from the
@@ -256,7 +293,9 @@ double DistanceToSE3(const Eigen::Matrix4d &);
  * Outputs:
  *	 true if M is very close to or in SO(3), false otherwise
  */
-bool TestIfSO3(const Eigen::Matrix3d &);
+inline bool TestIfSO3(const Eigen::Matrix3d &M) {
+  return std::abs(DistanceToSO3(M)) < 1e-3;
+}
 
 /*
  * Function: Returns true if T is close to or on the manifold SE(3)
@@ -265,7 +304,9 @@ bool TestIfSO3(const Eigen::Matrix3d &);
  * Outputs:
  *	 true if T is very close to or in SE(3), false otherwise
  */
-bool TestIfSE3(const Eigen::Matrix4d &);
+inline bool TestIfSE3(const Eigen::Matrix4d &T) {
+  return std::abs(DistanceToSE3(T)) < 1e-3;
+}
 
 /*
  * Function: Computes inverse kinematics in the body frame for an open chain
@@ -355,11 +396,16 @@ InverseDynamics(const Eigen::Vector<double, njoints> &,
  *
  */
 template <int njoints>
-Eigen::Vector<double, njoints>
-GravityForces(const Eigen::Vector<double, njoints> &, const Eigen::Vector3d &,
-              const std::array<Eigen::Isometry3d, njoints> &,
-              const std::array<Eigen::Matrix<double, 6, 6>, njoints> &,
-              const Eigen::Matrix<double, 6, njoints> &);
+inline Eigen::Vector<double, njoints>
+GravityForces(const Eigen::Vector<double, njoints> &thetalist,
+              const Eigen::Vector3d &g,
+              const std::array<Eigen::Isometry3d, njoints> &Mlist,
+              const std::array<Eigen::Matrix<double, 6, 6>, njoints> &Glist,
+              const Eigen::Matrix<double, 6, njoints> &Slist) {
+  return InverseDynamics(thetalist, Eigen::Vector<double, njoints>::Zero(),
+                         Eigen::Vector<double, njoints>::Zero(), g,
+                         Eigen::Vector<double, 6>::Zero(), Mlist, Glist, Slist);
+}
 
 /*
  * Function: This function calls InverseDynamics n times, each time passing a
@@ -402,12 +448,17 @@ MassMatrix(const Eigen::Vector<double, njoints> &,
  *     terms for a given thetalist and dthetalist.
  */
 template <int njoints>
-Eigen::Vector<double, njoints>
-VelQuadraticForces(const Eigen::Vector<double, njoints> &,
-                   const Eigen::Vector<double, njoints> &,
-                   const std::array<Eigen::Isometry3d, njoints> &,
-                   const std::array<Eigen::Matrix<double, 6, 6>, njoints> &,
-                   const Eigen::Matrix<double, 6, njoints> &);
+inline Eigen::Vector<double, njoints> VelQuadraticForces(
+    const Eigen::Vector<double, njoints> &thetalist,
+    const Eigen::Vector<double, njoints> &dthetalist,
+    const std::array<Eigen::Isometry3d, njoints> &Mlist,
+    const std::array<Eigen::Matrix<double, 6, 6>, njoints> &Glist,
+    const Eigen::Matrix<double, 6, njoints> &Slist) {
+  return InverseDynamics(thetalist, dthetalist,
+                         Eigen::Vector<double, njoints>::Zero(),
+                         Eigen::Vector3d::Zero(),
+                         Eigen::Vector<double, 6>::Zero(), Mlist, Glist, Slist);
+}
 
 /*
  * Function: This function calls InverseDynamics with g = 0, dthetalist = 0, and
@@ -426,12 +477,16 @@ VelQuadraticForces(const Eigen::Vector<double, njoints> &,
  *     end-effector force Ftip.
  */
 template <int njoints>
-Eigen::Vector<double, njoints>
-EndEffectorForces(const Eigen::Vector<double, njoints> &,
-                  const Eigen::Vector<double, 6> &,
-                  const std::array<Eigen::Isometry3d, njoints> &,
-                  const std::array<Eigen::Matrix<double, 6, 6>, njoints> &,
-                  const Eigen::Matrix<double, 6, njoints> &);
+inline Eigen::Vector<double, njoints>
+EndEffectorForces(const Eigen::Vector<double, njoints> &thetalist,
+                  const Eigen::Vector<double, 6> &Ftip,
+                  const std::array<Eigen::Isometry3d, njoints> &Mlist,
+                  const std::array<Eigen::Matrix<double, 6, 6>, njoints> &Glist,
+                  const Eigen::Matrix<double, 6, njoints> &Slist) {
+  return InverseDynamics(thetalist, Eigen::Vector<double, njoints>::Zero(),
+                         Eigen::Vector<double, njoints>::Zero(),
+                         Eigen::Vector3d::Zero(), Ftip, Mlist, Glist, Slist);
+}
 
 /*
  * Function: This function computes ddthetalist by solving:
@@ -478,9 +533,14 @@ ForwardDynamics(const Eigen::Vector<double, njoints> &,
  integration
  */
 template <int njoints>
-void EulerStep(Eigen::Vector<double, njoints> &,
-               Eigen::Vector<double, njoints> &,
-               const Eigen::Vector<double, njoints> &, const double &);
+inline void EulerStep(Eigen::Vector<double, njoints> &thetalist,
+                      Eigen::Vector<double, njoints> &dthetalist,
+                      const Eigen::Vector<double, njoints> &ddthetalist,
+                      const double &dt) {
+  thetalist += dthetalist * dt;
+  dthetalist += ddthetalist * dt;
+  return;
+}
 
 /*
  * Function: Compute the joint forces/torques required to move the serial chain
