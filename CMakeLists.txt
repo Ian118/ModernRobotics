@@ -7,14 +7,14 @@ set(warnings "-Wall -Wextra -Werror")
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
  set(warnings "/W4 /WX /EHsc")
 endif()
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
-set(CMAKE_CXX_STANDARD 11)
 
+set(CMAKE_CXX_STANDARD 17)
 
+find_package(Eigen3 REQUIRED NO_MODULE)
 
-find_package (Eigen3 REQUIRED NO_MODULE)
-
-add_library(ModernRobotics SHARED src/modern_robotics.cpp include/modern_robotics.h)
+add_library(ModernRobotics SHARED src/ModernRobotics.cpp)
+target_sources(ModernRobotics PUBLIC include/ModernRobotics)
+target_include_directories(ModernRobotics PUBLIC include)
 target_link_libraries(ModernRobotics Eigen3::Eigen)
 
 

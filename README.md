@@ -1,6 +1,8 @@
 # Modern Robotics:  Mechanics, Planning, and Control
 # C++ Library
 
+This is a port of https://github.com/NxRLab/ModernRobotics in C++.
+
 This repository contains the code library accompanying [_Modern Robotics:
 Mechanics, Planning, and Control_](http://modernrobotics.org) (Kevin Lynch
 and Frank Park, Cambridge University Press 2017). The
