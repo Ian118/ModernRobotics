@@ -593,16 +593,15 @@ InverseDynamics(const Eigen::Vector<double, njoints> &thetalist,
                 const std::array<Eigen::Isometry3d, njoints+1> &Mlist,
                 const std::array<Eigen::Matrix<double, 6, 6>, njoints> &Glist,
                 const Eigen::Matrix<double, 6, njoints> &Slist) {
-  constexpr int n1 = njoints == -1 ? -1 : njoints + 1;
   Eigen::Isometry3d Mi{Eigen::Isometry3d::Identity()};
   Eigen::Matrix<double, 6, njoints> Ai{
       Eigen::Matrix<double, 6, njoints>::Zero()};
-  Eigen::Matrix<double, 6, n1> Vi{
-      Eigen::Matrix<double, 6, n1>::Zero()}; // velocity
-  Eigen::Matrix<double, 6, n1> Vdi{
-      Eigen::Matrix<double, 6, n1>::Zero()}; // acceleration
-  Vdi.block(3,1,3,0) = -g;
-  std::array<Eigen::Matrix<double, 6, 6>, n1> AdTi;
+  Eigen::Matrix<double, 6, njoints + 1> Vi{
+      Eigen::Matrix<double, 6, njoints + 1>::Zero()}; // velocity
+  Eigen::Matrix<double, 6, njoints + 1> Vdi{
+      Eigen::Matrix<double, 6, njoints + 1>::Zero()}; // acceleration
+  Vdi.col(0) << Eigen::Vector3d::Zero(), -g;
+  std::array<Eigen::Matrix<double, 6, 6>, njoints + 1> AdTi;
   AdTi[njoints] = Adjoint(TransInv(Mlist[njoints]));
   Eigen::Vector<double, 6> Fi = Ftip;
 
