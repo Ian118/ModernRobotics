@@ -1,0 +1,38 @@
+name: CMake CI
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v6
+
+    - name: Configure CMake
+      run: cmake -B ${{github.workspace}}/build
+
+    - name: Build project
+      # The `--config` flag is important for multi-configuration generators like Visual Studio on Windows
+      run: cmake --build ${{github.workspace}}/build --config Release
+
+    - name: Test project
+      # Runs tests using CTest
+      run: ctest --test-dir ${{github.workspace}}/build --config Release --output-on-failure
+  
+  format:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v6
+
+    - name: Clang format
+      run: find . -regex '.*\.\(cpp\|hpp\|cc\|cxx\)' -exec clang-format -style=file -i {} \;
+    
+    - name: Commit changes
+      run: git diff --quiet && git diff --staged --quiet || git commit -am "Formatted C++/Python/XML files" --author="github-actions <github-actions@github.com>"
+
+    - name: Push changes
+      run: git push

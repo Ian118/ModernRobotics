@@ -5,6 +5,7 @@
 #include <cmath>
 #include <array>
 #include <utility>
+#include <vector>
 
 /*
  * ModernRobotics
@@ -834,24 +835,24 @@ inline void EulerStep(Eigen::Vector<double, njoints> &thetalist,
  * trajectory, where each of the N rows is the vector of joint forces/torques at
  * each time step
  */
-template <int n, int N>
-Eigen::Matrix<double, N, n> InverseDynamicsTrajectory(
-    const Eigen::Matrix<double, N, n> &thetamat,
-    const Eigen::Matrix<double, N, n> &dthetamat,
-    const Eigen::Matrix<double, N, n> &ddthetamat, const Eigen::Vector3d &g,
-    const Eigen::Matrix<double, N, 6> &Ftipmat,
-    const std::array<Eigen::Isometry3d, n> &Mlist,
-    const std::array<Eigen::Matrix<double, 6, 6>, n> &Glist,
-    const Eigen::Matrix<double, 6, n> &Slist) {
-  Eigen::Matrix<double, n, N> thetamatT = thetamat.transpose();
-  Eigen::Matrix<double, n, N> dthetamatT = dthetamat.transpose();
-  Eigen::Matrix<double, n, N> ddthetamatT = ddthetamat.transpose();
-  Eigen::Matrix<double, 6, N> FtipmatT = Ftipmat.transpose();
+template <int njoints, int npoints>
+Eigen::Matrix<double, npoints, njoints> InverseDynamicsTrajectory(
+    const Eigen::Matrix<double, npoints, njoints> &thetamat,
+    const Eigen::Matrix<double, npoints, njoints> &dthetamat,
+    const Eigen::Matrix<double, npoints, njoints> &ddthetamat, const Eigen::Vector3d &g,
+    const Eigen::Matrix<double, npoints, 6> &Ftipmat,
+    const std::array<Eigen::Isometry3d, njoints+1> &Mlist,
+    const std::array<Eigen::Matrix<double, 6, 6>, njoints> &Glist,
+    const Eigen::Matrix<double, 6, njoints> &Slist) {
+  Eigen::Matrix<double, njoints, npoints> thetamatT = thetamat.transpose();
+  Eigen::Matrix<double, njoints, npoints> dthetamatT = dthetamat.transpose();
+  Eigen::Matrix<double, njoints, npoints> ddthetamatT = ddthetamat.transpose();
+  Eigen::Matrix<double, 6, npoints> FtipmatT = Ftipmat.transpose();
 
-  Eigen::Matrix<double, n, N> taumatT{Eigen::Matrix<double, n, N>::Zero()};
-  for (int i = 0; i < N; ++i) {
+  Eigen::Matrix<double, njoints, npoints> taumatT;
+  for (int i = 0; i < npoints; ++i) {
     taumatT.col(i) =
-        InverseDynamics<n>(thetamatT.col(i), dthetamatT.col(i), ddthetamatT.col(i),
+        InverseDynamics<njoints>(thetamatT.col(i), dthetamatT.col(i), ddthetamatT.col(i),
                         g, FtipmatT.col(i), Mlist, Glist, Slist);
   }
   return taumatT.transpose();
@@ -877,31 +878,30 @@ Eigen::Matrix<double, N, n> InverseDynamicsTrajectory(
  *  thetamat: The N x n matrix of joint angles resulting from the specified
  * joint forces/torques dthetamat: The N x n matrix of joint velocities
  */
-template <int n, int N>
-std::pair<Eigen::Matrix<double, N, n>, Eigen::Matrix<double, N, n>>
+template <int njoints>
+std::pair<Eigen::MatrixXd, Eigen::MatrixXd>
 ForwardDynamicsTrajectory(
-    const Eigen::Vector<double, n> &thetalist,
-    const Eigen::Vector<double, n> &dthetalist,
-    const Eigen::Matrix<double, N, n> &taumat, const Eigen::Vector3d &g,
-    const Eigen::Matrix<double, N, 6> &Ftipmat,
-    const std::array<Eigen::Isometry3d, n> &Mlist,
-    const std::array<Eigen::Matrix<double, 6, 6>, n> &Glist,
-    const Eigen::Matrix<double, 6, n> &Slist, const double &dt,
+    const Eigen::Vector<double, njoints> &thetalist,
+    const Eigen::Vector<double, njoints> &dthetalist,
+    const Eigen::MatrixXd &taumat, const Eigen::Vector3d &g,
+    const Eigen::MatrixXd &Ftipmat,
+    const std::array<Eigen::Isometry3d, njoints+1> &Mlist,
+    const std::array<Eigen::Matrix<double, 6, 6>, njoints> &Glist,
+    const Eigen::Matrix<double, 6, njoints> &Slist, const double &dt,
     const int &intRes) {
-  Eigen::Matrix<double, n, N> taumatT = taumat.transpose();
-  Eigen::Matrix<double, 6, N> FtipmatT = Ftipmat.transpose();
-  Eigen::Matrix<double, n, N> thetamatT = Eigen::Matrix<double, n, N>::Zero();
-  Eigen::Matrix<double, n, N> dthetamatT = Eigen::Matrix<double, n, N>::Zero();
+  double npoints = taumat.rows();
+  Eigen::MatrixXd FtipmatT = Ftipmat.transpose();  Eigen::MatrixXd thetamatT = Eigen::MatrixXd::Zero(njoints, npoints);
+  Eigen::MatrixXd dthetamatT = Eigen::MatrixXd::Zero(njoints, npoints);
   thetamatT.col(0) = thetalist;
   dthetamatT.col(0) = dthetalist;
-  Eigen::Vector<double, n> thetacurrent = thetalist;
-  Eigen::Vector<double, n> dthetacurrent = dthetalist;
-  Eigen::Vector<double, n> ddthetalist;
-  for (int i = 0; i < N - 1; ++i) {
+  Eigen::Vector<double, njoints> thetacurrent = thetalist;
+  Eigen::Vector<double, njoints> dthetacurrent = dthetalist;
+  Eigen::Vector<double, njoints> ddthetalist;
+  for (int i = 0; i < npoints - 1; ++i) {
     for (int j = 0; j < intRes; ++j) {
-      ddthetalist = ForwardDynamics<n>(thetacurrent, dthetacurrent, taumatT.col(i),
+      ddthetalist = ForwardDynamics<njoints>(thetacurrent, dthetacurrent, taumat.row(i),
                                     g, FtipmatT.col(i), Mlist, Glist, Slist);
-      EulerStep<n>(thetacurrent, dthetacurrent, ddthetalist, dt / intRes);
+      EulerStep<njoints>(thetacurrent, dthetacurrent, ddthetalist, dt / intRes);
     }
     thetamatT.col(i + 1) = thetacurrent;
     dthetamatT.col(i + 1) = dthetacurrent;
@@ -1006,22 +1006,22 @@ inline double QuinticTimeScaling(double Tf, double t) {
  *        thetastart and the Nth row is thetaend . The elapsed time
  *        between each row is Tf / (N - 1)
  */
-// Eigen::MatrixXd JointTrajectory(const Eigen::VectorXd &thetastart,
-//                                 const Eigen::VectorXd &thetaend, double Tf,
-//                                 int N, int method) {
-//   double timegap = Tf / (N - 1);
-//   Eigen::MatrixXd trajT = Eigen::MatrixXd::Zero(thetastart.size(), N);
-//   double st;
-//   for (int i = 0; i < N; ++i) {
-//     if (method == 3)
-//       st = CubicTimeScaling(Tf, timegap * i);
-//     else
-//       st = QuinticTimeScaling(Tf, timegap * i);
-//     trajT.col(i) = st * thetaend + (1 - st) * thetastart;
-//   }
-//   Eigen::MatrixXd traj = trajT.transpose();
-//   return traj;
-// }
+template <int njoints>
+Eigen::MatrixXd JointTrajectory(const Eigen::Vector<double, njoints> &thetastart,
+                                const Eigen::Vector<double, njoints> &thetaend, double Tf,
+                                int N, int method) {
+  double timegap = Tf / (N - 1);
+  Eigen::Matrix<double, njoints, Eigen::Dynamic> trajT = Eigen::Matrix<double, njoints, Eigen::Dynamic>::Zero(njoints, N);
+  double st;
+  for (int i = 0; i < N; ++i) {
+    if (method == 3)
+      st = CubicTimeScaling(Tf, timegap * i);
+    else
+      st = QuinticTimeScaling(Tf, timegap * i);
+    trajT.col(i) = st * thetaend + (1 - st) * thetastart;
+  }
+  return trajT.transpose();
+}
 
 /*
  * Function: Compute a trajectory as a list of N SE(3) matrices corresponding to
@@ -1041,22 +1041,21 @@ inline double QuinticTimeScaling(double Tf, double t) {
  *        separated in time by Tf/(N-1). The first in the list is Xstart
  *        and the Nth is Xend
  */
-// std::vector<Eigen::MatrixXd> ScrewTrajectory(const Eigen::MatrixXd &Xstart,
-//                                              const Eigen::MatrixXd &Xend,
-//                                              double Tf, int N, int method) {
-//   double timegap = Tf / (N - 1);
-//   std::vector<Eigen::MatrixXd> traj(N);
-//   double st;
-//   for (int i = 0; i < N; ++i) {
-//     if (method == 3)
-//       st = CubicTimeScaling(Tf, timegap * i);
-//     else
-//       st = QuinticTimeScaling(Tf, timegap * i);
-//     Eigen::MatrixXd Ttemp = MatrixLog6(TransInv(Xstart) * Xend);
-//     traj.at(i) = Xstart * MatrixExp6(Ttemp * st);
-//   }
-//   return traj;
-// }
+std::vector<Eigen::Isometry3d> ScrewTrajectory(const Eigen::Isometry3d &Xstart,
+                                             const Eigen::Isometry3d &Xend,
+                                             double Tf, int N, int method) {
+  double timegap = Tf / (N - 1);
+  std::vector<Eigen::Isometry3d> traj;
+  double st;
+  for (int i = 0; i < N; ++i) {
+    if (method == 3)
+      st = CubicTimeScaling(Tf, timegap * i);
+    else
+      st = QuinticTimeScaling(Tf, timegap * i);
+    traj.push_back(Xstart * MatrixExp6(MatrixLog6(TransInv(Xstart) * Xend) * st));
+  }
+  return traj;
+}
 
 /*
  * Function: Compute a trajectory as a list of N SE(3) matrices corresponding to
@@ -1077,34 +1076,22 @@ inline double QuinticTimeScaling(double Tf, double t) {
  *  end-effector frame follows a straight line, decoupled from the rotational
  *  motion.
  */
-// std::vector<Eigen::MatrixXd> CartesianTrajectory(const Eigen::MatrixXd
-// &Xstart,
-//                                                  const Eigen::MatrixXd &Xend,
-//                                                  double Tf, int N, int
-//                                                  method) {
-//   double timegap = Tf / (N - 1);
-//   std::vector<Eigen::MatrixXd> traj(N);
-//   auto Rpstart = TransToRp(Xstart);
-//   auto Rpend = TransToRp(Xend);
-//   Eigen::Matrix3d Rstart = Rpstart.first;
-//   Eigen::Vector3d pstart = Rpstart.second;
-//   Eigen::Matrix3d Rend = Rpend.first;
-//   Eigen::Vector3d pend = Rpend.second;
-//   double st;
-//   for (int i = 0; i < N; ++i) {
-//     if (method == 3)
-//       st = CubicTimeScaling(Tf, timegap * i);
-//     else
-//       st = QuinticTimeScaling(Tf, timegap * i);
-//     Eigen::Matrix3d Ri =
-//         Rstart * MatrixExp3(MatrixLog3(Rstart.transpose() * Rend) * st);
-//     Eigen::Vector3d pi = st * pend + (1 - st) * pstart;
-//     Eigen::MatrixXd traji(4, 4);
-//     traji << Ri, pi, 0, 0, 0, 1;
-//     traj.at(i) = traji;
-//   }
-//   return traj;
-// }
+std::vector<Eigen::Isometry3d> CartesianTrajectory(const Eigen::Isometry3d &Xstart,
+                                                 const Eigen::Isometry3d &Xend,
+                                                 double Tf, int N, int method) {
+  double timegap = Tf / (N - 1);
+  std::vector<Eigen::Isometry3d> traj(N);
+  double st;
+  for (int i = 0; i < N; ++i) {
+    if (method == 3)
+      st = CubicTimeScaling(Tf, timegap * i);
+    else
+      st = QuinticTimeScaling(Tf, timegap * i);
+    traj.at(i).linear() = Xstart.linear() * MatrixExp3(MatrixLog3(Xstart.linear().transpose() * Xend.linear()) * st);
+    traj.at(i).translation() = st * Xstart.translation() + (1 - st) * Xend.translation();
+  }
+  return traj;
+}
 
 /*
  * Function: Compute the motion of a serial chain given an open-loop history of
@@ -1134,48 +1121,46 @@ inline double QuinticTimeScaling(double Tf, double t) {
  * where each row of n forces/torques corresponds to a single time instant
  *  thetamat: The N x n matrix of actual joint angles
  */
-// std::vector<Eigen::MatrixXd> SimulateControl(
-//     const Eigen::VectorXd &thetalist, const Eigen::VectorXd &dthetalist,
-//     const Eigen::Vector3d &g, const Eigen::MatrixXd &Ftipmat,
-//     const std::vector<Eigen::Matrix4d> &Mlist,
-//     const std::vector<Eigen::Matrix<double, 6, 6>> &Glist,
-//     const Eigen::Matrix<double, 6, Eigen::Dynamic> &Slist,
-//     const Eigen::MatrixXd &thetamatd, const Eigen::MatrixXd &dthetamatd,
-//     const Eigen::MatrixXd &ddthetamatd, const Eigen::Vector3d &gtilde,
-//     const std::vector<Eigen::Matrix4d> &Mtildelist,
-//     const std::vector<Eigen::Matrix<double, 6, 6>> &Gtildelist, double Kp,
-//     double Ki, double Kd, double dt, int intRes) {
-//   Eigen::MatrixXd FtipmatT = Ftipmat.transpose();
-//   Eigen::MatrixXd thetamatdT = thetamatd.transpose();
-//   Eigen::MatrixXd dthetamatdT = dthetamatd.transpose();
-//   Eigen::MatrixXd ddthetamatdT = ddthetamatd.transpose();
-//   int m = thetamatdT.rows();
-//   int n = thetamatdT.cols();
-//   Eigen::VectorXd thetacurrent = thetalist;
-//   Eigen::VectorXd dthetacurrent = dthetalist;
-//   Eigen::VectorXd eint = Eigen::VectorXd::Zero(m);
-//   Eigen::MatrixXd taumatT = Eigen::MatrixXd::Zero(m, n);
-//   Eigen::MatrixXd thetamatT = Eigen::MatrixXd::Zero(m, n);
-//   Eigen::VectorXd taulist;
-//   Eigen::VectorXd ddthetalist;
-//   for (int i = 0; i < n; ++i) {
-//     taulist =
-//         ComputedTorque(thetacurrent, dthetacurrent, eint, gtilde, Mtildelist,
-//                        Gtildelist, Slist, thetamatdT.col(i),
-//                        dthetamatdT.col(i), ddthetamatdT.col(i), Kp, Ki, Kd);
-//     for (int j = 0; j < intRes; ++j) {
-//       ddthetalist = ForwardDynamics(thetacurrent, dthetacurrent, taulist, g,
-//                                     FtipmatT.col(i), Mlist, Glist, Slist);
-//       EulerStep(thetacurrent, dthetacurrent, ddthetalist, dt / intRes);
-//     }
-//     taumatT.col(i) = taulist;
-//     thetamatT.col(i) = thetacurrent;
-//     eint += dt * (thetamatdT.col(i) - thetacurrent);
-//   }
-//   std::vector<Eigen::MatrixXd> ControlTauTraj_ret;
-//   ControlTauTraj_ret.push_back(taumatT.transpose());
-//   ControlTauTraj_ret.push_back(thetamatT.transpose());
-//   return ControlTauTraj_ret;
-// }
+template <int njoints>
+std::pair<Eigen::MatrixXd, Eigen::MatrixXd> SimulateControl(
+    const Eigen::Vector<double, njoints> &thetalist, const Eigen::Vector<double, njoints> &dthetalist,
+    const Eigen::Vector3d &g, const Eigen::MatrixXd &Ftipmat,
+    const std::array<Eigen::Isometry3d, njoints+1> &Mlist,
+    const std::array<Eigen::Matrix<double, 6, 6>, njoints> &Glist,
+    const Eigen::Matrix<double, 6, njoints> &Slist,
+    const Eigen::MatrixXd &thetamatd, const Eigen::MatrixXd &dthetamatd,
+    const Eigen::MatrixXd &ddthetamatd, const Eigen::Vector3d &gtilde,
+    const std::array<Eigen::Isometry3d, njoints+1> &Mtildelist,
+    const std::array<Eigen::Matrix<double, 6, 6>, njoints> &Gtildelist, double Kp,
+    double Ki, double Kd, double dt, int intRes) {
+  Eigen::Matrix<double, 6, Eigen::Dynamic> FtipmatT = Ftipmat.transpose();
+  Eigen::MatrixXd thetamatdT = thetamatd.transpose();
+  Eigen::MatrixXd dthetamatdT = dthetamatd.transpose();
+  Eigen::MatrixXd ddthetamatdT = ddthetamatd.transpose();
+
+  int npoints = thetamatd.rows();
+  Eigen::Vector<double, njoints> thetacurrent = thetalist;
+  Eigen::Vector<double, njoints> dthetacurrent = dthetalist;
+  Eigen::Vector<double, njoints> eint = Eigen::Vector<double, njoints>::Zero();
+  Eigen::MatrixXd taumatT = Eigen::MatrixXd::Zero(njoints, npoints);
+  Eigen::MatrixXd thetamatT = Eigen::MatrixXd::Zero(njoints, npoints);
+  Eigen::Vector<double, njoints> taulist;
+  Eigen::Vector<double, njoints> ddthetalist;
+  for (int i = 0; i < njoints; ++i) {
+    taulist =
+        ComputedTorque<njoints>(thetacurrent, dthetacurrent, eint, gtilde, Mtildelist,
+                       Gtildelist, Slist, thetamatdT.col(i),
+                       dthetamatdT.col(i), ddthetamatdT.col(i), Kp, Ki, Kd);
+    for (int j = 0; j < intRes; ++j) {
+      ddthetalist = ForwardDynamics<njoints>(thetacurrent, dthetacurrent, taulist, g,
+                                    FtipmatT.col(i), Mlist, Glist, Slist);
+      EulerStep(thetacurrent, dthetacurrent, ddthetalist, dt / intRes);
+    }
+    taumatT.col(i) = taulist;
+    thetamatT.col(i) = thetacurrent;
+    eint += dt * (thetamatdT.col(i) - thetacurrent);
+  }
+  return {taumatT.transpose(), thetamatT.transpose()};
+}
 
 } // namespace mr
