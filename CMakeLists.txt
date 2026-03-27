@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 4.0)
+cmake_minimum_required(VERSION 3.10.0)
 project(ModernRobotics)
 
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR
