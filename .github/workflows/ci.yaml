@@ -29,7 +29,7 @@ jobs:
       uses: actions/checkout@v6
 
     - name: Clang format
-      run: find . -regex '.*\.\(cpp\|hpp\|cc\|cxx\)' -exec clang-format -style=file -i {} \;
+      run: find include tests -type f -exec clang-format -style=file -i {} \;
     
     - name: Commit changes
       run: git diff --quiet && git diff --staged --quiet || git commit -am "Formatted C++/Python/XML files" --author="github-actions <github-actions@github.com>"
