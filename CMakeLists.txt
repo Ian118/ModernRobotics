@@ -1,14 +1,7 @@
 cmake_minimum_required(VERSION 3.10.0)
 project(ModernRobotics)
 
-if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR
-        "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-    set(warnings "-Wall -Wextra -Werror")
-elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
-    set(warnings "/W4 /WX /EHsc")
-endif()
-
-set(CMAKE_CXX_STANDARD 17)
+option(BUILD_TESTING "Build the testing tree." OFF)
 
 find_package(Eigen3 REQUIRED NO_MODULE)
 
@@ -22,9 +15,10 @@ target_sources(ModernRobotics
 )
 target_link_libraries(ModernRobotics INTERFACE Eigen3::Eigen)
 
-enable_testing()
-find_package(GTest REQUIRED)
-
-add_executable(test_all tests/test.cpp)
-target_link_libraries(test_all PRIVATE ModernRobotics GTest::gtest_main GTest::gtest Eigen3::Eigen)
-gtest_discover_tests(test_all)
+if(BUILD_TESTING)
+  enable_testing()
+  find_package(GTest REQUIRED)
+  add_executable(test_all test/test.cpp)
+  target_link_libraries(test_all PRIVATE ModernRobotics GTest::gtest_main GTest::gtest Eigen3::Eigen)
+  gtest_discover_tests(test_all)
+endif()
