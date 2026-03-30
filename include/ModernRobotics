@@ -62,7 +62,7 @@ inline Eigen::Vector3d so3ToVec(const Eigen::Matrix3d &so3mat) {
  * Output: Eigen::MatrixXd (6x6)
  * Note: Can be used to calculate the Lie bracket [V1, V2] = [adV1]V2
  */
-Eigen::Matrix<double, 6, 6> ad(Eigen::Vector<double, 6> V) {
+inline Eigen::Matrix<double, 6, 6> ad(Eigen::Vector<double, 6> V) {
   Eigen::Matrix3d omgmat = VecToso3(V.head<3>());
 
   Eigen::Matrix<double, 6, 6> result;
@@ -88,7 +88,7 @@ inline Eigen::AngleAxisd AxisAng3(const Eigen::Vector3d &expc3) {
  * Inputs: exponenential representation of a rotation
  * Returns: Rotation matrix
  */
-Eigen::Matrix3d MatrixExp3(const Eigen::Matrix3d &so3mat) {
+inline Eigen::Matrix3d MatrixExp3(const Eigen::Matrix3d &so3mat) {
   Eigen::Vector3d omgtheta = so3ToVec(so3mat);
   Eigen::Matrix3d m_ret = Eigen::Matrix3d::Identity();
   double theta = omgtheta.norm();
@@ -106,7 +106,7 @@ Eigen::Matrix3d MatrixExp3(const Eigen::Matrix3d &so3mat) {
  * Inputs: Rotation matrix
  * Returns: matrix logarithm of a rotation
  */
-Eigen::Matrix3d MatrixLog3(const Eigen::Matrix3d &R) {
+inline Eigen::Matrix3d MatrixLog3(const Eigen::Matrix3d &R) {
   double acosinput = (R.trace() - 1) / 2.0;
   Eigen::Matrix3d m_ret = Eigen::Matrix3d::Zero(3, 3);
   if (acosinput >= 1)
@@ -197,7 +197,7 @@ inline Eigen::Matrix<double, 6, 6> Adjoint(const Eigen::Isometry3d &T) {
  * Inputs: se3 matrix representation of exponential coordinates (transformation
  * matrix) Returns: 6x6 Matrix representing the rotation
  */
-Eigen::Isometry3d MatrixExp6(const Eigen::Matrix4d &se3mat) {
+inline Eigen::Isometry3d MatrixExp6(const Eigen::Matrix4d &se3mat) {
   // Extract the angular velocity vector from the transformation matrix
   Eigen::Matrix3d se3mat_cut = se3mat.topLeftCorner<3, 3>();
   Eigen::Vector3d omgtheta = so3ToVec(se3mat_cut);
@@ -225,7 +225,7 @@ Eigen::Isometry3d MatrixExp6(const Eigen::Matrix4d &se3mat) {
  * matrix Inputs: R: Transformation matrix in SE3 Returns: The matrix logarithm
  * of R
  */
-Eigen::Matrix4d MatrixLog6(const Eigen::Isometry3d &T) {
+inline Eigen::Matrix4d MatrixLog6(const Eigen::Isometry3d &T) {
   Eigen::Matrix4d m_ret{Eigen::Matrix4d::Zero()};
   Eigen::Matrix3d omgmat = MatrixLog3(T.rotation());
 
@@ -253,7 +253,7 @@ Eigen::Matrix4d MatrixLog6(const Eigen::Isometry3d &T) {
  * specified coordinates Notes: FK means Forward Kinematics
  */
 template <int njoints>
-Eigen::Isometry3d FKinSpace(const Eigen::Isometry3d &M,
+inline Eigen::Isometry3d FKinSpace(const Eigen::Isometry3d &M,
                             const Eigen::Matrix<double, 6, njoints> &Slist,
                             const Eigen::Vector<double, njoints> &thetaList) {
   Eigen::Isometry3d T = M;
@@ -272,7 +272,7 @@ Eigen::Isometry3d FKinSpace(const Eigen::Isometry3d &M,
  * specified coordinates Notes: FK means Forward Kinematics
  */
 template <int njoints>
-Eigen::Isometry3d FKinBody(const Eigen::Isometry3d &M,
+inline Eigen::Isometry3d FKinBody(const Eigen::Isometry3d &M,
                            const Eigen::Matrix<double, 6, njoints> &Blist,
                            const Eigen::Vector<double, njoints> &thetaList) {
   Eigen::Isometry3d T = M;
@@ -288,7 +288,7 @@ Eigen::Isometry3d FKinBody(const Eigen::Isometry3d &M,
  * Returns: 6xn Spatial Jacobian
  */
 template <int njoints>
-Eigen::Matrix<double, 6, njoints>
+inline Eigen::Matrix<double, 6, njoints>
 JacobianSpace(const Eigen::Matrix<double, 6, njoints> &Slist,
               const Eigen::Vector<double, njoints> &thetaList) {
   Eigen::Matrix<double, 6, njoints> Js = Slist;
@@ -308,7 +308,7 @@ JacobianSpace(const Eigen::Matrix<double, 6, njoints> &Slist,
  * Returns: 6xn Bobdy Jacobian
  */
 template <int njoints>
-Eigen::Matrix<double, 6, njoints>
+inline Eigen::Matrix<double, 6, njoints>
 JacobianBody(const Eigen::Matrix<double, 6, njoints> &Blist,
              const Eigen::Vector<double, njoints> &thetaList) {
   Eigen::Matrix<double, 6, njoints> Jb = Blist;
@@ -367,7 +367,7 @@ inline Eigen::Vector<double, 6> ScrewToAxis(const Eigen::Vector3d &q,
  traveled
  * along/about S in form [S, theta]
  */
-Eigen::Vector<double, 7> AxisAng6(const Eigen::Vector<double, 6> &expc6) {
+inline Eigen::Vector<double, 7> AxisAng6(const Eigen::Vector<double, 6> &expc6) {
   Eigen::Vector<double, 7> v_ret;
   double theta = Eigen::Vector3d(expc6(0), expc6(1), expc6(2)).norm();
   if (NearZero(theta))
@@ -386,7 +386,7 @@ Eigen::Vector<double, 7> AxisAng6(const Eigen::Vector<double, 6> &expc6) {
  * http://hades.mech.northwestern.edu/index.php/Modern_Robotics_Linear_Algebra_Review).
  * This function is only appropriate for matrices close to SO(3).
  */
-Eigen::Matrix3d ProjectToSO3(const Eigen::Matrix3d &M) {
+inline Eigen::Matrix3d ProjectToSO3(const Eigen::Matrix3d &M) {
   Eigen::JacobiSVD<Eigen::Matrix3d, Eigen::ComputeFullU | Eigen::ComputeFullV>
       svd(M);
   Eigen::Matrix3d R = svd.matrixU() * svd.matrixV().transpose();
@@ -433,7 +433,7 @@ inline double DistanceToSO3(const Eigen::Matrix3d &M) {
  * the first three entries of the fourth column of mat to zero. Then return
  * norm(T - I).
  */
-double DistanceToSE3(const Eigen::Matrix4d &T) {
+inline double DistanceToSE3(const Eigen::Matrix4d &T) {
   Eigen::Matrix3d matR = T.topLeftCorner<3, 3>();
   if (matR.determinant() > 0) {
     Eigen::Matrix4d m_ret;
@@ -485,7 +485,7 @@ inline bool TestIfSE3(const Eigen::Matrix4d &T) {
  * that achieve T within the specified tolerances,
  */
 template <int njoints>
-bool IKinBody(const Eigen::Matrix<double, 6, njoints> &Blist,
+inline bool IKinBody(const Eigen::Matrix<double, 6, njoints> &Blist,
               const Eigen::Isometry3d &M, const Eigen::Isometry3d &T,
               Eigen::Vector<double, njoints> &thetalist, double eomg,
               double ev) {
@@ -534,7 +534,7 @@ bool IKinBody(const Eigen::Matrix<double, 6, njoints> &Blist,
  * that achieve T within the specified tolerances,
  */
 template <int njoints>
-bool IKinSpace(const Eigen::Matrix<double, 6, njoints> &Slist,
+inline bool IKinSpace(const Eigen::Matrix<double, 6, njoints> &Slist,
                const Eigen::Isometry3d &M, const Eigen::Isometry3d &T,
                Eigen::Vector<double, njoints> &thetalist, double eomg,
                double ev) {
@@ -585,7 +585,7 @@ bool IKinSpace(const Eigen::Matrix<double, 6, njoints> &Slist,
  *
  */
 template <int njoints>
-Eigen::Vector<double, njoints>
+inline Eigen::Vector<double, njoints>
 InverseDynamics(const Eigen::Vector<double, njoints> &thetalist,
                 const Eigen::Vector<double, njoints> &dthetalist,
                 const Eigen::Vector<double, njoints> &ddthetalist,
@@ -673,7 +673,7 @@ GravityForces(const Eigen::Vector<double, njoints> &thetalist,
  *     chain at the given configuration thetalist.
  */
 template <int njoints>
-Eigen::Matrix<double, njoints, njoints>
+inline Eigen::Matrix<double, njoints, njoints>
 MassMatrix(const Eigen::Vector<double, njoints> &thetalist,
            const std::array<Eigen::Isometry3d, njoints + 1> &Mlist,
            const std::array<Eigen::Matrix<double, 6, 6>, njoints> &Glist,
@@ -772,7 +772,7 @@ EndEffectorForces(const Eigen::Vector<double, njoints> &thetalist,
  *
  */
 template <int njoints>
-Eigen::Vector<double, njoints>
+inline Eigen::Vector<double, njoints>
 ForwardDynamics(const Eigen::Vector<double, njoints> &thetalist,
                 const Eigen::Vector<double, njoints> &dthetalist,
                 const Eigen::Vector<double, njoints> &taulist,
@@ -839,7 +839,7 @@ inline void EulerStep(Eigen::Vector<double, njoints> &thetalist,
  * each time step
  */
 template <int njoints, int npoints>
-Eigen::Matrix<double, npoints, njoints> InverseDynamicsTrajectory(
+inline Eigen::Matrix<double, npoints, njoints> InverseDynamicsTrajectory(
     const Eigen::Matrix<double, npoints, njoints> &thetamat,
     const Eigen::Matrix<double, npoints, njoints> &dthetamat,
     const Eigen::Matrix<double, npoints, njoints> &ddthetamat,
@@ -882,7 +882,7 @@ Eigen::Matrix<double, npoints, njoints> InverseDynamicsTrajectory(
  * joint forces/torques dthetamat: The N x n matrix of joint velocities
  */
 template <int njoints>
-std::pair<Eigen::MatrixXd, Eigen::MatrixXd> ForwardDynamicsTrajectory(
+inline std::pair<Eigen::MatrixXd, Eigen::MatrixXd> ForwardDynamicsTrajectory(
     const Eigen::Vector<double, njoints> &thetalist,
     const Eigen::Vector<double, njoints> &dthetalist,
     const Eigen::MatrixXd &taumat, const Eigen::Vector3d &g,
@@ -936,7 +936,7 @@ std::pair<Eigen::MatrixXd, Eigen::MatrixXd> ForwardDynamicsTrajectory(
  *				  linearizing controller at the current instant
  */
 template <int njoints>
-Eigen::Vector<double, njoints>
+inline Eigen::Vector<double, njoints>
 ComputedTorque(const Eigen::Vector<double, njoints> &thetalist,
                const Eigen::Vector<double, njoints> &dthetalist,
                const Eigen::Vector<double, njoints> &eint,
@@ -1011,7 +1011,7 @@ inline double QuinticTimeScaling(double Tf, double t) {
  *        between each row is Tf / (N - 1)
  */
 template <int njoints>
-Eigen::MatrixXd
+inline Eigen::MatrixXd
 JointTrajectory(const Eigen::Vector<double, njoints> &thetastart,
                 const Eigen::Vector<double, njoints> &thetaend, double Tf,
                 int N, int method) {
@@ -1047,7 +1047,7 @@ JointTrajectory(const Eigen::Vector<double, njoints> &thetastart,
  *        separated in time by Tf/(N-1). The first in the list is Xstart
  *        and the Nth is Xend
  */
-std::vector<Eigen::Isometry3d> ScrewTrajectory(const Eigen::Isometry3d &Xstart,
+inline std::vector<Eigen::Isometry3d> ScrewTrajectory(const Eigen::Isometry3d &Xstart,
                                                const Eigen::Isometry3d &Xend,
                                                double Tf, int N, int method) {
   double timegap = Tf / (N - 1);
@@ -1084,7 +1084,7 @@ std::vector<Eigen::Isometry3d> ScrewTrajectory(const Eigen::Isometry3d &Xstart,
  *  motion.
  */
 std::vector<Eigen::Isometry3d>
-CartesianTrajectory(const Eigen::Isometry3d &Xstart,
+inline CartesianTrajectory(const Eigen::Isometry3d &Xstart,
                     const Eigen::Isometry3d &Xend, double Tf, int N,
                     int method) {
   double timegap = Tf / (N - 1);
@@ -1134,7 +1134,7 @@ CartesianTrajectory(const Eigen::Isometry3d &Xstart,
  *  thetamat: The N x n matrix of actual joint angles
  */
 template <int njoints>
-std::pair<Eigen::MatrixXd, Eigen::MatrixXd> SimulateControl(
+inline std::pair<Eigen::MatrixXd, Eigen::MatrixXd> SimulateControl(
     const Eigen::Vector<double, njoints> &thetalist,
     const Eigen::Vector<double, njoints> &dthetalist, const Eigen::Vector3d &g,
     const Eigen::MatrixXd &Ftipmat,
